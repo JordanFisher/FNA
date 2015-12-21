@@ -761,9 +761,16 @@ namespace Microsoft.Xna.Framework
 				surface = newSurface;
 			}
 
-			// Copy surface data to output managed byte array
-			unsafe
-			{
+            // We use RGBA format, but for some reason FNA is not spitting out the RGBA
+            // components we're expecting. Somehow converting to ARGB put the pixels
+            // in the right order. Don't ask me why.
+            var result = SDL.SDL_ConvertSurfaceFormat(surface, SDL.SDL_PIXELFORMAT_ARGB8888, 0);
+            SDL.SDL_FreeSurface(surface);
+            surface = result;
+
+            // Copy surface data to output managed byte array
+            unsafe
+            {
 				SDL_Surface* surPtr = (SDL_Surface*) surface;
 				width = surPtr->w;
 				height = surPtr->h;
@@ -772,11 +779,13 @@ namespace Microsoft.Xna.Framework
 			}
 			SDL.SDL_FreeSurface(surface);
 
+            // We store important information in the color and alpha channels,
+            // even if the alpha channel is 0, so we don't do this pixel cleanup.
+            // -pwnee
 			/* Ensure that the alpha pixels are... well, actual alpha.
 			 * You think this looks stupid, but be assured: Your paint program is
 			 * almost certainly even stupider.
 			 * -flibit
-			 */
 			for (int i = 0; i < pixels.Length; i += 4)
 			{
 				if (pixels[i + 3] == 0)
@@ -785,7 +794,7 @@ namespace Microsoft.Xna.Framework
 					pixels[i + 1] = 0;
 					pixels[i + 2] = 0;
 				}
-			}
+			}*/
 		}
 
 		internal override void SavePNG(
